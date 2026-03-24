@@ -10,10 +10,21 @@ const MONGODB_URI = process.env.MONGODB_URI || 'mongodb://localhost:27017/hunger
 
 const connectMongo = async () => {
   try {
-    await mongoose.connect(MONGODB_URI, { useNewUrlParser: true, useUnifiedTopology: true });
+    const connectionPromise = mongoose.connect(MONGODB_URI, { 
+      useNewUrlParser: true, 
+      useUnifiedTopology: true,
+      serverSelectionTimeoutMS: 5000,
+      connectTimeoutMS: 5000
+    });
+    
+    const timeoutPromise = new Promise((_, reject) => 
+      setTimeout(() => reject(new Error('Connection timeout')), 6000)
+    );
+    
+    await Promise.race([connectionPromise, timeoutPromise]);
     console.log('Connected to MongoDB');
   } catch (err) {
-    console.warn('MongoDB connection failed, using in-memory only', err.message);
+    console.warn('MongoDB connection failed, using in-memory only:', err.message);
   }
 };
 
@@ -258,6 +269,20 @@ app.get('/api/admin/users', (req, res) => {
 app.get('/api/admin/posts', (req, res) => {
   const allPosts = Array.from(posts.values());
   return res.json(allPosts);
+});
+
+app.get('/api/analytics', (req, res) => {
+  const totalPosts = posts.size;
+  const delivered = Array.from(posts.values()).filter(p => p.status === 'delivered').length;
+  const expired = Array.from(posts.values()).filter(p => p.status === 'expired').length;
+  const savedMeals = delivered * 8;
+  const avgDeliveryTime = (() => {
+    const deliveredPosts = Array.from(posts.values()).filter(p => p.status === 'delivered' && p.deliveredAt && p.claimedAt);
+    if (!deliveredPosts.length) return 0;
+    const sum = deliveredPosts.reduce((acc, p) => acc + (p.deliveredAt - p.claimedAt), 0);
+    return Math.round(sum / deliveredPosts.length / 1000 / 60);
+  })();
+  return res.json({totalPosts, delivered, expired, savedMeals, avgDeliveryTime});
 });
 
 io.on('connection', (socket) => {
