@@ -1,0 +1,21 @@
+{
+  "name": "hunger-bridge-backend",
+  "version": "1.0.0",
+  "description": "Real-time surplus food redistribution backend",
+  "main": "index.js",
+  "scripts": {
+    "start": "node src/index.js",
+    "dev": "nodemon src/index.js"
+  },
+  "dependencies": {
+    "cors": "^2.8.5",
+    "express": "^4.18.2",
+    "http-status-codes": "^2.2.0",
+    "mongoose": "^7.7.0",
+    "nanoid": "^5.0.2",
+    "socket.io": "^4.7.2"
+  },
+  "devDependencies": {
+    "nodemon": "^3.0.1"
+  }
+}
